@@ -8,7 +8,7 @@ export default defineConfig({
     VitePWA({
       strategies: 'injectManifest',
       srcDir: 'src',
-      filename: 'service-worker.ts',
+      filename: 'sw.ts',
       registerType: 'autoUpdate',
       manifest: {
         name: 'RentTrack',
@@ -17,7 +17,13 @@ export default defineConfig({
         display: 'standalone',
         background_color: '#ffffff',
         theme_color: '#1A56DB',
-        icons: [{ src: '/vite.svg', sizes: '192x192', type: 'image/png' }]
+        icons: [
+          {
+            src: '/vite.svg',
+            sizes: '192x192',
+            type: 'image/png'
+          }
+        ]
       },
       devOptions: {
         enabled: true,
