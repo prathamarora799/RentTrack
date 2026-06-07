@@ -3,15 +3,18 @@ import webpush from 'web-push'
 import Payment from '../models/Payment'
 import User from '../models/User'
 
+// Add a new payment — called when tenant submits the payment form
 export const addPayment = async (req: Request, res: Response) => {
   try {
     const { amount, date, method, month, note } = req.body
     console.log(`[PAYMENT] Add attempt - Amount: ${amount}, Month: ${month}`)
 
+    // If tenant uploaded a proof image, save the file path
     const proofImage = (req as any).file
       ? `/uploads/${(req as any).file.filename}`
       : ''
 
+    // Save payment to the database
     const payment = await Payment.create({
       tenant: (req as any).user.id,
       amount, date, method, month, note, proofImage
@@ -19,9 +22,16 @@ export const addPayment = async (req: Request, res: Response) => {
 
     console.log(`[PAYMENT] Added successfully - ID: ${payment._id}`)
 
+    // Get tenant details to include in the notification message
     const tenant = await User.findById((req as any).user.id)
-    const landlords = await User.find({ role: 'landlord', pushSubscription: { $ne: null } })
 
+    // Find all landlords who have push subscriptions
+    const landlords = await User.find({
+      role: 'landlord',
+      pushSubscription: { $ne: null }
+    })
+
+    // Send push notification to each landlord
     for (const landlord of landlords) {
       if (landlord.pushSubscription) {
         try {
@@ -40,45 +50,58 @@ export const addPayment = async (req: Request, res: Response) => {
     }
 
     res.status(201).json(payment)
+
   } catch (err) {
     console.error(`[PAYMENT] Add error: ${err}`)
     res.status(500).json({ message: 'Server error' })
   }
 }
 
+// Get all payments for the currently logged in tenant
 export const getMyPayments = async (req: Request, res: Response) => {
   try {
     console.log(`[PAYMENT] Fetching payments for user: ${(req as any).user.id}`)
+
     const payments = await Payment.find({
       tenant: (req as any).user.id
     }).sort({ createdAt: -1 })
+
     console.log(`[PAYMENT] Found ${payments.length} payments`)
     res.json(payments)
+
   } catch (err) {
     console.error(`[PAYMENT] Get error: ${err}`)
     res.status(500).json({ message: 'Server error' })
   }
 }
 
+// Update a payment — landlord uses this to confirm or flag
 export const updatePayment = async (req: Request, res: Response) => {
   try {
     console.log(`[PAYMENT] Update attempt - ID: ${req.params.id}, Status: ${req.body.status}`)
 
+    // Find payment by ID and update it
     const payment = await Payment.findByIdAndUpdate(
       req.params.id,
       req.body,
       { new: true }
     ).populate('tenant')
 
+    // If landlord changed the status, notify the tenant
     if (req.body.status && payment) {
       const tenant = await User.findById((payment as any).tenant)
+
       if (tenant?.pushSubscription) {
+        // Pick message based on confirmed or flagged
         const msg = req.body.status === 'confirmed'
           ? { title: 'Payment Confirmed ✅', body: `Your payment of $${payment.amount} confirmed!` }
           : { title: 'Payment Flagged 🚩', body: `Your payment of $${payment.amount} was flagged!` }
 
         try {
-          await webpush.sendNotification(tenant.pushSubscription as any, JSON.stringify(msg))
+          await webpush.sendNotification(
+            tenant.pushSubscription as any,
+            JSON.stringify(msg)
+          )
           console.log(`[PUSH] Notification sent to tenant: ${tenant.email}`)
         } catch {
           console.error('[PUSH] Failed to send to tenant')
@@ -88,32 +111,39 @@ export const updatePayment = async (req: Request, res: Response) => {
 
     console.log(`[PAYMENT] Updated successfully - ID: ${req.params.id}`)
     res.json(payment)
+
   } catch (err) {
     console.error(`[PAYMENT] Update error: ${err}`)
     res.status(500).json({ message: 'Server error' })
   }
 }
 
+// Delete a payment by its ID
 export const deletePayment = async (req: Request, res: Response) => {
   try {
     console.log(`[PAYMENT] Delete attempt - ID: ${req.params.id}`)
     await Payment.findByIdAndDelete(req.params.id)
     console.log(`[PAYMENT] Deleted successfully - ID: ${req.params.id}`)
     res.json({ message: 'Payment deleted' })
+
   } catch (err) {
     console.error(`[PAYMENT] Delete error: ${err}`)
     res.status(500).json({ message: 'Server error' })
   }
 }
 
+// Get all payments — used on the landlord dashboard
 export const getAllPayments = async (req: Request, res: Response) => {
   try {
     console.log('[PAYMENT] Fetching all payments (landlord)')
+
     const payments = await Payment.find()
       .populate('tenant', 'name email')
       .sort({ createdAt: -1 })
+
     console.log(`[PAYMENT] Found ${payments.length} total payments`)
     res.json(payments)
+
   } catch (err) {
     console.error(`[PAYMENT] Get all error: ${err}`)
     res.status(500).json({ message: 'Server error' })

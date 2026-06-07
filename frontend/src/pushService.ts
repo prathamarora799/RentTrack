@@ -1,4 +1,4 @@
-// Convert base64 to Uint8Array
+// Convert base64 string to Uint8Array for the push subscription
 const urlBase64ToUint8Array = (base64String: string) => {
   const padding = '='.repeat((4 - base64String.length % 4) % 4)
   const base64 = (base64String + padding).replace(/-/g, '+').replace(/_/g, '/')
@@ -6,35 +6,36 @@ const urlBase64ToUint8Array = (base64String: string) => {
   return Uint8Array.from([...rawData].map(c => c.charCodeAt(0)))
 }
 
-// Subscribe to push notifications
+// Subscribe the user to push notifications
 export const subscribeToPush = async (token: string) => {
   try {
+    // Check if the browser supports push notifications
     if (!('serviceWorker' in navigator) || !('PushManager' in window)) {
-      console.log('Push not supported')
+      console.log('Push not supported in this browser')
       return
     }
 
-    // Permission maango
+    // Ask the user for notification permission
     const permission = await Notification.requestPermission()
     if (permission !== 'granted') {
-      console.log('Permission denied')
+      console.log('User denied notification permission')
       return
     }
 
-    // Get VAPID public key from backend
+    // Get the VAPID public key from our backend
     const keyRes = await fetch('http://localhost:5000/api/notifications/vapid-public-key')
     const { publicKey } = await keyRes.json()
 
-    // Service worker ready hone ka wait karo
+    // Wait for the service worker to be ready
     const registration = await navigator.serviceWorker.ready
 
-    // Subscribe karo
+    // Create a push subscription using the public key
     const subscription = await registration.pushManager.subscribe({
       userVisibleOnly: true,
       applicationServerKey: urlBase64ToUint8Array(publicKey)
     })
 
-    // Backend mein save karo
+    // Send the subscription to the backend to save it
     await fetch('http://localhost:5000/api/notifications/subscribe', {
       method: 'POST',
       headers: {
@@ -45,12 +46,13 @@ export const subscribeToPush = async (token: string) => {
     })
 
     console.log('Push subscription saved ✅')
+
   } catch (err) {
     console.log('Push subscription error:', err)
   }
 }
 
-// Send welcome notification
+// Show a welcome notification right in the browser
 export const sendWelcomeNotification = (name: string) => {
   if (Notification.permission === 'granted') {
     new Notification('Welcome to RentTrack! 🏠', {

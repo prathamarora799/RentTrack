@@ -1,9 +1,10 @@
 import express from 'express'
 import cors from 'cors'
 import dotenv from 'dotenv'
-import mongoose from 'mongoose'
 import path from 'path'
 import webpush from 'web-push'
+import Database from './config/database'
+import { notificationSubject, pushObserver } from './config/notificationObserver'
 import authRoutes from './routes/authRoutes'
 import paymentRoutes from './routes/paymentRoutes'
 import userRoutes from './routes/userRoutes'
@@ -16,15 +17,22 @@ const PORT = process.env.PORT || 5000
 
 app.use(cors())
 app.use(express.json())
+
+// Serve uploaded proof images
 app.use('/uploads', express.static(path.join(__dirname, '../uploads')))
 
-// VAPID keys setup
+// Set VAPID details for push notifications
 webpush.setVapidDetails(
   'mailto:renttrack@gmail.com',
   process.env.VAPID_PUBLIC_KEY as string,
   process.env.VAPID_PRIVATE_KEY as string
 )
 
+// Register Observer Pattern  push observer listens to notification events
+notificationSubject.subscribe(pushObserver)
+console.log('[OBSERVER] Push notification observer registered ✅')
+
+// Register all API routes
 app.use('/api/auth', authRoutes)
 app.use('/api/payments', paymentRoutes)
 app.use('/api/users', userRoutes)
@@ -34,12 +42,14 @@ app.get('/', (req, res) => {
   res.json({ message: 'RentTrack API running ✅' })
 })
 
-mongoose.connect(process.env.MONGODB_URI as string)
-  .then(() => console.log('MongoDB connected ✅'))
-  .catch((err) => console.log('MongoDB error:', err))
+// Connect to MongoDB using Singleton Pattern
+const db = Database.getInstance()
+db.connect(process.env.MONGODB_URI as string)
+  .catch((err) => console.error(`[DB] Failed to connect: ${err}`))
 
+// Start the server
 app.listen(PORT, () => {
-  console.log(`Server running on port ${PORT}`)
+  console.log(`[SERVER] Running on port ${PORT}`)
 })
 
 export default app

@@ -3,7 +3,7 @@ import app from '../index'
 
 describe('RentTrack Tests', () => {
 
-  // Test 1 — Register
+  // Test 1 — New user should be created successfully
   test('Register new user', async () => {
     const res = await request(app)
       .post('/api/auth/register')
@@ -16,7 +16,7 @@ describe('RentTrack Tests', () => {
     expect(res.status).toBe(201)
   })
 
-  // Test 2 — Login
+  // Test 2 — Correct credentials should return a token
   test('Login with correct credentials', async () => {
     const res = await request(app)
       .post('/api/auth/login')
@@ -28,7 +28,7 @@ describe('RentTrack Tests', () => {
     expect(res.body).toHaveProperty('token')
   })
 
-  // Test 3 — Login wrong password
+  // Test 3 — Wrong password should be rejected
   test('Login with wrong password', async () => {
     const res = await request(app)
       .post('/api/auth/login')
