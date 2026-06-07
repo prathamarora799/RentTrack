@@ -1,12 +1,13 @@
 /// <reference lib="webworker" />
 import { precacheAndRoute } from 'workbox-precaching'
 import { registerRoute } from 'workbox-routing'
-import { StaleWhileRevalidate } from 'workbox-strategies'
+import { StaleWhileRevalidate, NetworkFirst } from 'workbox-strategies'
 
 declare const self: ServiceWorkerGlobalScope
 
 precacheAndRoute(self.__WB_MANIFEST)
 
+// Cache JS and CSS files
 registerRoute(
   ({ request }) =>
     request.destination === 'script' ||
@@ -14,9 +15,10 @@ registerRoute(
   new StaleWhileRevalidate()
 )
 
+// Use NetworkFirst for navigation so pages always load fresh
 registerRoute(
   ({ request }) => request.mode === 'navigate',
-  new StaleWhileRevalidate({ cacheName: 'pages-cache' })
+  new NetworkFirst({ cacheName: 'pages-cache' })
 )
 
 // Push notification receive karo

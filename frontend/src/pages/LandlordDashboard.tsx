@@ -1,9 +1,10 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
 
 function LandlordDashboard() {
   const navigate = useNavigate()
   const token = localStorage.getItem('token')
+  const name = localStorage.getItem('name') || 'Landlord'
   const [payments, setPayments] = useState<any[]>([])
   const [tenants, setTenants] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
@@ -14,6 +15,14 @@ function LandlordDashboard() {
   const [editTenant, setEditTenant] = useState<any>(null)
   const [rentInput, setRentInput] = useState('')
   const [dueDateInput, setDueDateInput] = useState('')
+  const [showNotif, setShowNotif] = useState(false)
+  const [notifications, setNotifications] = useState([
+    { id: 1, msg: 'Alex Johnson added a payment of $1,200 for June', time: '1 hour ago', read: false },
+    { id: 2, msg: 'New tenant registered — Sarah Connor', time: '2 days ago', read: false },
+    { id: 3, msg: 'May payment flagged by system', time: '4 days ago', read: true },
+  ])
+  const notifRef = useRef<HTMLDivElement>(null)
+  const unread = notifications.filter(n => !n.read).length
 
   const showToast = (msg: string, type: string) => {
     setToast({ show: true, msg, type })
@@ -27,9 +36,7 @@ function LandlordDashboard() {
       })
       const data = await res.json()
       setPayments(data)
-    } catch {
-      showToast('Error loading payments', 'error')
-    }
+    } catch { showToast('Error loading payments', 'error') }
     setLoading(false)
   }
 
@@ -40,9 +47,7 @@ function LandlordDashboard() {
       })
       const data = await res.json()
       setTenants(data)
-    } catch {
-      console.log('Error loading tenants')
-    }
+    } catch { console.log('Error loading tenants') }
   }
 
   useEffect(() => {
@@ -50,21 +55,26 @@ function LandlordDashboard() {
     fetchTenants()
   }, [])
 
+  useEffect(() => {
+    const handleClick = (e: MouseEvent) => {
+      if (notifRef.current && !notifRef.current.contains(e.target as Node)) {
+        setShowNotif(false)
+      }
+    }
+    document.addEventListener('mousedown', handleClick)
+    return () => document.removeEventListener('mousedown', handleClick)
+  }, [])
+
   const handleStatus = async (id: string, status: string) => {
     try {
       await fetch(`http://localhost:5000/api/payments/${id}`, {
         method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${token}`
-        },
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
         body: JSON.stringify({ status })
       })
       showToast(`Payment ${status}!`, 'success')
       fetchPayments()
-    } catch {
-      showToast('Error updating', 'error')
-    }
+    } catch { showToast('Error updating', 'error') }
   }
 
   const handleDeleteTenant = async (id: string) => {
@@ -74,11 +84,9 @@ function LandlordDashboard() {
         method: 'DELETE',
         headers: { Authorization: `Bearer ${token}` }
       })
-      showToast('Tenant removed!', 'error')
+      showToast('Tenant removed', 'error')
       fetchTenants()
-    } catch {
-      showToast('Error removing tenant', 'error')
-    }
+    } catch { showToast('Error removing tenant', 'error') }
   }
 
   const handleSetRent = async () => {
@@ -86,21 +94,13 @@ function LandlordDashboard() {
     try {
       await fetch(`http://localhost:5000/api/users/tenants/${editTenant._id}`, {
         method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${token}`
-        },
-        body: JSON.stringify({
-          rentAmount: rentInput,
-          dueDate: dueDateInput
-        })
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ rentAmount: rentInput, dueDate: dueDateInput })
       })
       showToast('Rent details updated!', 'success')
       setEditTenant(null)
       fetchTenants()
-    } catch {
-      showToast('Error updating', 'error')
-    }
+    } catch { showToast('Error updating', 'error') }
   }
 
   const total = payments.reduce((sum, p) => sum + p.amount, 0)
@@ -113,32 +113,25 @@ function LandlordDashboard() {
     p.month?.toLowerCase().includes(search.toLowerCase())
   )
 
-  const statusColor: any = {
-    confirmed: { bg: '#EAF3DE', text: '#3B6D11' },
-    pending: { bg: '#FAEEDA', text: '#854F0B' },
-    flagged: { bg: '#FCEBEB', text: '#791F1F' }
+  const statusBadge: any = {
+    confirmed: { bg: '#DCFCE7', color: '#166534' },
+    pending: { bg: '#FFFBEB', color: '#D97706' },
+    flagged: { bg: '#FEF2F2', color: '#DC2626' }
   }
 
   const navItems = [
-    { id: 'dashboard', icon: '📊', label: 'Dashboard' },
-    { id: 'tenants', icon: '👥', label: 'Tenants' },
-    { id: 'payments', icon: '🧾', label: 'All Payments' },
-    { id: 'profile', icon: '👤', label: 'Profile' },
+    { id: 'dashboard', label: 'Overview', icon: '📊' },
+    { id: 'tenants', label: 'Tenants', icon: '👥' },
+    { id: 'payments', label: 'All payments', icon: '🧾' },
+    { id: 'profile', label: 'Profile', icon: '👤' },
   ]
 
   return (
-    <div style={{ display: 'flex', minHeight: '100vh' }}>
+    <div style={{ display: 'flex', minHeight: '100vh', background: '#F0FDF4' }}>
 
       {/* Toast */}
       {toast.show && (
-        <div style={{
-          position: 'fixed', top: '20px', right: '20px', zIndex: 9999,
-          background: toast.type === 'error' ? '#FCEBEB' : '#EAF3DE',
-          border: `1px solid ${toast.type === 'error' ? '#F7C1C1' : '#9FE1CB'}`,
-          color: toast.type === 'error' ? '#791F1F' : '#3B6D11',
-          padding: '12px 20px', borderRadius: '10px',
-          fontSize: '14px', fontWeight: 500
-        }}>
+        <div style={{ position: 'fixed', top: '20px', right: '20px', zIndex: 9999, background: toast.type === 'error' ? '#FEF2F2' : '#DCFCE7', border: `1px solid ${toast.type === 'error' ? '#FECACA' : '#86EFAC'}`, color: toast.type === 'error' ? '#DC2626' : '#166534', padding: '12px 18px', borderRadius: '10px', fontSize: '13px', fontWeight: 500 }}>
           {toast.msg}
         </div>
       )}
@@ -146,47 +139,38 @@ function LandlordDashboard() {
       {/* Set Rent Modal */}
       {editTenant && (
         <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000 }}>
-          <div style={{ background: 'white', borderRadius: '14px', padding: '28px', width: '380px' }}>
-            <h3 style={{ margin: '0 0 6px', fontSize: '16px', color: '#1a1a1a' }}>Set Rent Details</h3>
-            <p style={{ color: '#888', fontSize: '13px', margin: '0 0 20px' }}>
-              For: <strong>{editTenant.name}</strong>
-            </p>
+          <div style={{ background: 'white', borderRadius: '16px', padding: '28px', width: '380px', border: '1px solid #D1FAE5' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+              <h3 style={{ margin: 0, fontSize: '16px', color: '#052E16' }}>Set rent details</h3>
+              <span onClick={() => setEditTenant(null)} style={{ cursor: 'pointer', color: '#9CA3AF', fontSize: '18px' }}>✕</span>
+            </div>
+            <div style={{ background: '#F0FDF4', borderRadius: '10px', padding: '12px', marginBottom: '16px', display: 'flex', alignItems: 'center', gap: '10px' }}>
+              <div style={{ width: '36px', height: '36px', borderRadius: '50%', background: '#DCFCE7', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#166534', fontWeight: 500, fontSize: '14px' }}>
+                {editTenant.name?.charAt(0)}
+              </div>
+              <div>
+                <div style={{ fontSize: '13px', fontWeight: 500, color: '#052E16' }}>{editTenant.name}</div>
+                <div style={{ fontSize: '11px', color: '#6B7280' }}>{editTenant.email}</div>
+              </div>
+            </div>
             <div style={{ marginBottom: '14px' }}>
-              <label style={{ display: 'block', fontSize: '13px', color: '#666', marginBottom: '5px' }}>
-                Monthly Rent ($)
-              </label>
-              <input
-                type="number"
-                value={rentInput}
-                onChange={(e) => setRentInput(e.target.value)}
-                placeholder="e.g. 1200"
-                style={{ width: '100%', padding: '10px', border: '1px solid #ddd', borderRadius: '8px', boxSizing: 'border-box', fontSize: '14px' }}
-              />
+              <label style={{ display: 'block', fontSize: '13px', color: '#374151', marginBottom: '6px', fontWeight: 500 }}>Monthly rent ($)</label>
+              <input type="number" value={rentInput} onChange={(e) => setRentInput(e.target.value)} placeholder="e.g. 1200"
+                style={{ width: '100%', padding: '10px 14px', border: '1px solid #D1FAE5', borderRadius: '10px', fontSize: '14px', boxSizing: 'border-box', outline: 'none', background: '#F9FAFB', color: '#111827' }} />
             </div>
             <div style={{ marginBottom: '20px' }}>
-              <label style={{ display: 'block', fontSize: '13px', color: '#666', marginBottom: '5px' }}>
-                Due Date (day of month 1-31)
-              </label>
-              <input
-                type="number"
-                min="1"
-                max="31"
-                value={dueDateInput}
-                onChange={(e) => setDueDateInput(e.target.value)}
-                placeholder="e.g. 1 = 1st of every month"
-                style={{ width: '100%', padding: '10px', border: '1px solid #ddd', borderRadius: '8px', boxSizing: 'border-box', fontSize: '14px' }}
-              />
-              <p style={{ color: '#aaa', fontSize: '11px', margin: '4px 0 0' }}>
-                Tenant will get reminder 7 days, 3 days, and 1 day before this date
-              </p>
+              <label style={{ display: 'block', fontSize: '13px', color: '#374151', marginBottom: '6px', fontWeight: 500 }}>Due date (day of month)</label>
+              <input type="number" min="1" max="31" value={dueDateInput} onChange={(e) => setDueDateInput(e.target.value)} placeholder="e.g. 1 = 1st of every month"
+                style={{ width: '100%', padding: '10px 14px', border: '1px solid #D1FAE5', borderRadius: '10px', fontSize: '14px', boxSizing: 'border-box', outline: 'none', background: '#F9FAFB', color: '#111827' }} />
+              <p style={{ color: '#9CA3AF', fontSize: '11px', margin: '4px 0 0' }}>Tenant will get notified 7, 3, and 1 day before this date</p>
             </div>
             <div style={{ display: 'flex', gap: '10px' }}>
               <button onClick={handleSetRent}
-                style={{ flex: 1, padding: '10px', background: '#185FA5', color: 'white', border: 'none', borderRadius: '8px', cursor: 'pointer', fontWeight: 500 }}>
-                Save
+                style={{ flex: 1, padding: '11px', background: '#0A3622', color: 'white', border: 'none', borderRadius: '10px', cursor: 'pointer', fontWeight: 500, fontSize: '14px' }}>
+                Save changes
               </button>
               <button onClick={() => setEditTenant(null)}
-                style={{ flex: 1, padding: '10px', background: '#f5f5f5', color: '#333', border: '1px solid #ddd', borderRadius: '8px', cursor: 'pointer' }}>
+                style={{ flex: 1, padding: '11px', background: '#F0FDF4', color: '#374151', border: '1px solid #D1FAE5', borderRadius: '10px', cursor: 'pointer', fontSize: '14px' }}>
                 Cancel
               </button>
             </div>
@@ -197,132 +181,180 @@ function LandlordDashboard() {
       {/* Image Modal */}
       {selectedImage && (
         <div onClick={() => setSelectedImage('')}
-          style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.7)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000 }}>
+          style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.8)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000 }}>
           <div style={{ position: 'relative' }}>
-            <img src={selectedImage} alt="proof" style={{ maxWidth: '90vw', maxHeight: '80vh', borderRadius: '10px' }} />
+            <img src={selectedImage} alt="proof" style={{ maxWidth: '90vw', maxHeight: '80vh', borderRadius: '12px' }} />
             <button onClick={() => setSelectedImage('')}
-              style={{ position: 'absolute', top: '-12px', right: '-12px', background: 'white', border: 'none', borderRadius: '50%', width: '28px', height: '28px', cursor: 'pointer', fontWeight: 700 }}>
-              X
+              style={{ position: 'absolute', top: '-14px', right: '-14px', background: 'white', border: 'none', borderRadius: '50%', width: '30px', height: '30px', cursor: 'pointer', fontWeight: 700, fontSize: '14px', color: '#374151' }}>
+              ✕
             </button>
           </div>
         </div>
       )}
 
       {/* Sidebar */}
-      <div style={{ width: '220px', background: '#0C447C', display: 'flex', flexDirection: 'column', minHeight: '100vh', flexShrink: 0 }}>
-        <div style={{ padding: '20px 16px', borderBottom: '0.5px solid rgba(255,255,255,0.1)' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <span style={{ fontSize: '20px' }}>🏠</span>
+      <div style={{ width: '210px', background: '#052E16', display: 'flex', flexDirection: 'column', minHeight: '100vh', flexShrink: 0 }}>
+        <div style={{ padding: '20px 14px 16px', borderBottom: '0.5px solid #14532D' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '8px 10px', background: '#14532D', borderRadius: '10px' }}>
+            <div style={{ width: '24px', height: '24px', borderRadius: '6px', background: '#166534', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '13px' }}>🏠</div>
             <div>
-              <h2 style={{ color: 'white', margin: 0, fontSize: '16px', fontWeight: 500 }}>RentTrack</h2>
-              <p style={{ color: '#B5D4F4', margin: 0, fontSize: '11px' }}>Landlord Portal</p>
+              <div style={{ color: 'white', fontSize: '13px', fontWeight: 500 }}>RentTrack</div>
+              <div style={{ color: '#4ADE80', fontSize: '10px' }}>Landlord account</div>
             </div>
           </div>
         </div>
-        <div style={{ padding: '12px 8px', flex: 1 }}>
+
+        <div style={{ padding: '12px 10px', flex: 1 }}>
+          <div style={{ fontSize: '9px', color: '#4ADE80', letterSpacing: '0.8px', margin: '8px 10px 8px', textTransform: 'uppercase' }}>Main</div>
           {navItems.map(item => (
             <div key={item.id}
               onClick={() => {
                 if (item.id === 'profile') navigate('/profile')
                 else setActivePage(item.id)
               }}
-              style={{
-                display: 'flex', alignItems: 'center', gap: '10px',
-                padding: '10px 12px', borderRadius: '8px', cursor: 'pointer', marginBottom: '4px',
-                background: activePage === item.id ? 'rgba(255,255,255,0.15)' : 'transparent',
-                color: activePage === item.id ? 'white' : '#B5D4F4',
-              }}>
-              <span style={{ fontSize: '16px' }}>{item.icon}</span>
-              <span style={{ fontSize: '13px' }}>{item.label}</span>
+              style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '9px 12px', borderRadius: '8px', cursor: 'pointer', marginBottom: '2px', background: activePage === item.id ? '#14532D' : 'transparent', borderLeft: activePage === item.id ? '3px solid #4ADE80' : '3px solid transparent' }}>
+              <span style={{ fontSize: '14px' }}>{item.icon}</span>
+              <span style={{ fontSize: '12px', color: activePage === item.id ? 'white' : '#4ADE80' }}>{item.label}</span>
+              {item.id === 'payments' && flagged > 0 && (
+                <span style={{ background: '#DC2626', color: 'white', fontSize: '9px', padding: '1px 6px', borderRadius: '10px', marginLeft: 'auto' }}>{flagged}</span>
+              )}
             </div>
           ))}
         </div>
-        <div style={{ padding: '12px 8px', borderTop: '0.5px solid rgba(255,255,255,0.1)' }}>
-          <div onClick={() => { localStorage.clear(); navigate('/') }}
-            style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '10px 12px', borderRadius: '8px', cursor: 'pointer', color: '#B5D4F4' }}>
-            <span style={{ fontSize: '16px' }}>🚪</span>
-            <span style={{ fontSize: '13px' }}>Logout</span>
+
+        <div style={{ padding: '12px 10px', borderTop: '0.5px solid #14532D' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '10px', background: '#14532D', borderRadius: '10px' }}>
+            <div style={{ width: '30px', height: '30px', borderRadius: '50%', background: '#166534', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#86EFAC', fontSize: '12px', fontWeight: 500, flexShrink: 0 }}>
+              {name.charAt(0).toUpperCase()}
+            </div>
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <div style={{ color: 'white', fontSize: '12px', fontWeight: 500, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{name}</div>
+              <div style={{ color: '#4ADE80', fontSize: '10px' }}>Landlord</div>
+            </div>
+            <div onClick={() => { localStorage.clear(); navigate('/') }} style={{ cursor: 'pointer' }}>
+              <span style={{ color: '#4ADE80', fontSize: '16px' }}>🚪</span>
+            </div>
           </div>
         </div>
       </div>
 
       {/* Main */}
-      <div style={{ flex: 1, background: '#f0f4ff', display: 'flex', flexDirection: 'column' }}>
-        <div style={{ background: 'white', padding: '12px 24px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '0.5px solid #e0e0e0' }}>
-          <span style={{ fontSize: '15px', fontWeight: 500, color: '#1a1a1a', textTransform: 'capitalize' }}>
-            {activePage}
-          </span>
+      <div style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
+
+        {/* Topbar */}
+        <div style={{ background: 'white', padding: '12px 24px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '0.5px solid #D1FAE5' }}>
+          <span style={{ fontSize: '15px', fontWeight: 500, color: '#052E16', textTransform: 'capitalize' }}>{activePage === 'dashboard' ? 'Overview' : activePage}</span>
           <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-            <span style={{ fontSize: '18px' }}>🔔</span>
-            <div style={{ width: '32px', height: '32px', borderRadius: '50%', background: '#EEEDFE', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '13px', fontWeight: 500, color: '#534AB7' }}>
-              DT
+
+            {/* Notification Bell */}
+            <div ref={notifRef} style={{ position: 'relative' }}>
+              <div onClick={() => { setShowNotif(!showNotif); setNotifications(prev => prev.map(n => ({ ...n, read: true }))) }}
+                style={{ position: 'relative', cursor: 'pointer', width: '36px', height: '36px', borderRadius: '8px', background: '#F0FDF4', border: '1px solid #D1FAE5', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <span style={{ fontSize: '16px' }}>🔔</span>
+                {unread > 0 && (
+                  <div style={{ position: 'absolute', top: '-4px', right: '-4px', width: '16px', height: '16px', background: '#DC2626', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '9px', color: 'white', fontWeight: 700 }}>
+                    {unread}
+                  </div>
+                )}
+              </div>
+
+              {showNotif && (
+                <div style={{ position: 'absolute', top: '44px', right: 0, width: '300px', background: 'white', borderRadius: '12px', border: '1px solid #D1FAE5', boxShadow: '0 8px 24px rgba(0,0,0,0.12)', zIndex: 999 }}>
+                  <div style={{ padding: '12px 16px', borderBottom: '0.5px solid #F0FDF4', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <span style={{ fontSize: '13px', fontWeight: 500, color: '#052E16' }}>Notifications</span>
+                    <span style={{ fontSize: '11px', color: '#22C55E', cursor: 'pointer' }}>Mark all read</span>
+                  </div>
+                  {notifications.map(n => (
+                    <div key={n.id} style={{ padding: '12px 16px', borderBottom: '0.5px solid #F9FFF9', background: n.read ? 'white' : '#F0FDF4', display: 'flex', gap: '10px', alignItems: 'flex-start' }}>
+                      <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: n.read ? '#D1FAE5' : '#22C55E', flexShrink: 0, marginTop: '4px' }}></div>
+                      <div>
+                        <div style={{ fontSize: '12px', color: '#111827' }}>{n.msg}</div>
+                        <div style={{ fontSize: '10px', color: '#9CA3AF', marginTop: '2px' }}>{n.time}</div>
+                      </div>
+                    </div>
+                  ))}
+                  <div style={{ padding: '10px 16px', textAlign: 'center' }}>
+                    <span style={{ fontSize: '12px', color: '#22C55E', cursor: 'pointer' }}>View all notifications</span>
+                  </div>
+                </div>
+              )}
             </div>
-            <span style={{ fontSize: '13px', color: '#333' }}>Landlord</span>
+
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', background: '#F0FDF4', border: '1px solid #D1FAE5', borderRadius: '8px', padding: '6px 12px' }}>
+              <div style={{ width: '24px', height: '24px', borderRadius: '50%', background: '#166534', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#86EFAC', fontSize: '11px', fontWeight: 500 }}>
+                {name.charAt(0).toUpperCase()}
+              </div>
+              <span style={{ fontSize: '13px', color: '#052E16', fontWeight: 500 }}>{name}</span>
+            </div>
           </div>
         </div>
 
-        <div style={{ padding: '24px', flex: 1 }}>
+        {/* Green header */}
+        <div style={{ background: '#0A3622', padding: '24px 24px 44px' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+            <div>
+              <div style={{ color: '#86EFAC', fontSize: '12px', marginBottom: '4px' }}>Total rent collected</div>
+              <div style={{ color: 'white', fontSize: '36px', fontWeight: 500 }}>${total.toLocaleString()}</div>
+              <div style={{ color: '#4ADE80', fontSize: '13px', marginTop: '4px' }}>{tenants.length} tenants · {payments.length} payments</div>
+            </div>
+          </div>
+        </div>
+
+        <div style={{ padding: '0 24px', marginTop: '-20px' }}>
 
           {/* DASHBOARD */}
           {activePage === 'dashboard' && (
             <>
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '12px', marginBottom: '20px' }}>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4,1fr)', gap: '12px', marginBottom: '20px' }}>
                 {[
-                  { label: 'Total tenants', value: tenants.length, color: '#185FA5', bg: '#E6F1FB', icon: '👥' },
-                  { label: 'Confirmed', value: confirmed, color: '#3B6D11', bg: '#EAF3DE', icon: '✅' },
-                  { label: 'Pending', value: pending, color: '#854F0B', bg: '#FAEEDA', icon: '⏳' },
-                  { label: 'Collected', value: `$${total}`, color: '#185FA5', bg: '#E6F1FB', icon: '💰' },
+                  { label: 'Total tenants', value: tenants.length, color: '#052E16' },
+                  { label: 'Confirmed', value: confirmed, color: '#166534' },
+                  { label: 'Pending', value: pending, color: '#D97706' },
+                  { label: 'Flagged', value: flagged, color: '#DC2626' },
                 ].map((s, i) => (
-                  <div key={i} style={{ background: 'white', padding: '16px', borderRadius: '12px', border: '0.5px solid #e0e0e0', display: 'flex', alignItems: 'center', gap: '12px' }}>
-                    <div style={{ width: '42px', height: '42px', background: s.bg, borderRadius: '10px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '18px' }}>
-                      {s.icon}
-                    </div>
-                    <div>
-                      <p style={{ color: '#888', fontSize: '11px', margin: '0 0 4px' }}>{s.label}</p>
-                      <p style={{ color: s.color, fontSize: '20px', fontWeight: 500, margin: 0 }}>{s.value}</p>
-                    </div>
+                  <div key={i} style={{ background: 'white', borderRadius: '12px', padding: '14px 16px', border: '0.5px solid #D1FAE5' }}>
+                    <div style={{ fontSize: '11px', color: '#6B7280', marginBottom: '6px' }}>{s.label}</div>
+                    <div style={{ fontSize: '24px', fontWeight: 500, color: s.color }}>{s.value}</div>
                   </div>
                 ))}
               </div>
 
               {flagged > 0 && (
-                <div style={{ background: '#FCEBEB', border: '1px solid #F7C1C1', borderRadius: '10px', padding: '12px 18px', marginBottom: '16px', display: 'flex', alignItems: 'center', gap: '10px' }}>
-                  <span style={{ fontSize: '20px' }}>🚩</span>
-                  <p style={{ color: '#791F1F', margin: 0, fontSize: '13px' }}>
-                    <strong>{flagged}</strong> payment(s) flagged — please review!
-                  </p>
+                <div style={{ background: '#FEF2F2', border: '1px solid #FECACA', borderRadius: '12px', padding: '14px 18px', marginBottom: '16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                    <span style={{ fontSize: '20px' }}>🚩</span>
+                    <div style={{ fontSize: '13px', color: '#DC2626', fontWeight: 500 }}>{flagged} payment(s) need review</div>
+                  </div>
                   <button onClick={() => setActivePage('payments')}
-                    style={{ marginLeft: 'auto', padding: '6px 14px', background: '#791F1F', color: 'white', border: 'none', borderRadius: '6px', cursor: 'pointer', fontSize: '12px' }}>
-                    Review
+                    style={{ background: '#DC2626', color: 'white', border: 'none', borderRadius: '8px', padding: '7px 14px', fontSize: '12px', cursor: 'pointer', fontWeight: 500 }}>
+                    Review now
                   </button>
                 </div>
               )}
 
-              <div style={{ background: 'white', borderRadius: '12px', padding: '20px', border: '0.5px solid #e0e0e0' }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
-                  <h3 style={{ margin: 0, fontSize: '15px', color: '#1a1a1a' }}>Recent payments</h3>
-                  <button onClick={() => setActivePage('payments')}
-                    style={{ padding: '6px 14px', background: '#f0f0f0', color: '#333', border: 'none', borderRadius: '6px', cursor: 'pointer', fontSize: '12px' }}>
-                    View all
-                  </button>
+              <div style={{ background: 'white', borderRadius: '14px', border: '0.5px solid #D1FAE5', overflow: 'hidden', marginBottom: '24px' }}>
+                <div style={{ padding: '14px 18px', borderBottom: '0.5px solid #F0FDF4', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <span style={{ fontSize: '14px', fontWeight: 500, color: '#052E16' }}>Recent payments</span>
+                  <span onClick={() => setActivePage('payments')} style={{ fontSize: '12px', color: '#22C55E', cursor: 'pointer' }}>View all</span>
                 </div>
-                {payments.slice(0, 5).map((p) => (
-                  <div key={p._id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px', border: '0.5px solid #f0f0f0', borderRadius: '8px', marginBottom: '8px' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                      <div style={{ width: '38px', height: '38px', borderRadius: '50%', background: '#E6F1FB', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '14px', fontWeight: 500, color: '#185FA5' }}>
+                <div style={{ padding: '10px 18px', background: '#F9FAFB', borderBottom: '0.5px solid #F0FDF4', display: 'grid', gridTemplateColumns: '1fr 1fr auto auto', gap: '8px' }}>
+                  {['Tenant', 'Month', 'Amount', 'Status'].map((h, i) => (
+                    <span key={i} style={{ fontSize: '11px', color: '#6B7280', fontWeight: 500 }}>{h}</span>
+                  ))}
+                </div>
+                {payments.slice(0, 5).map((p, idx) => (
+                  <div key={p._id} style={{ display: 'grid', gridTemplateColumns: '1fr 1fr auto auto', gap: '8px', padding: '12px 18px', alignItems: 'center', borderBottom: idx < 4 ? '0.5px solid #F0FDF4' : 'none' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                      <div style={{ width: '28px', height: '28px', borderRadius: '50%', background: '#DCFCE7', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#166534', fontSize: '11px', fontWeight: 500 }}>
                         {p.tenant?.name?.charAt(0) || 'T'}
                       </div>
-                      <div>
-                        <p style={{ margin: 0, fontWeight: 500, fontSize: '14px', color: '#1a1a1a' }}>{p.tenant?.name || 'Tenant'}</p>
-                        <p style={{ margin: '2px 0 0', color: '#888', fontSize: '12px' }}>{p.month} · {p.method}</p>
-                      </div>
+                      <span style={{ fontSize: '13px', color: '#111827', fontWeight: 500 }}>{p.tenant?.name || 'Tenant'}</span>
                     </div>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                      <p style={{ margin: 0, fontWeight: 500, color: '#185FA5', fontSize: '16px' }}>${p.amount}</p>
-                      <span style={{ padding: '3px 8px', borderRadius: '20px', fontSize: '11px', fontWeight: 500, background: statusColor[p.status]?.bg, color: statusColor[p.status]?.text }}>
-                        {p.status}
-                      </span>
-                    </div>
+                    <span style={{ fontSize: '12px', color: '#6B7280' }}>{p.month}</span>
+                    <span style={{ fontSize: '13px', fontWeight: 500, color: '#052E16' }}>${p.amount}</span>
+                    <span style={{ padding: '3px 10px', borderRadius: '20px', fontSize: '11px', fontWeight: 500, background: statusBadge[p.status]?.bg, color: statusBadge[p.status]?.color }}>
+                      {p.status}
+                    </span>
                   </div>
                 ))}
               </div>
@@ -331,123 +363,99 @@ function LandlordDashboard() {
 
           {/* TENANTS */}
           {activePage === 'tenants' && (
-            <div style={{ background: 'white', borderRadius: '12px', padding: '20px', border: '0.5px solid #e0e0e0' }}>
-              <h3 style={{ margin: '0 0 16px', fontSize: '15px', color: '#1a1a1a' }}>All tenants</h3>
+            <div style={{ background: 'white', borderRadius: '14px', border: '0.5px solid #D1FAE5', overflow: 'hidden', marginBottom: '24px' }}>
+              <div style={{ padding: '14px 18px', borderBottom: '0.5px solid #F0FDF4' }}>
+                <span style={{ fontSize: '14px', fontWeight: 500, color: '#052E16' }}>All tenants ({tenants.length})</span>
+              </div>
               {tenants.length === 0 ? (
-                <p style={{ textAlign: 'center', color: '#888', padding: '30px' }}>No tenants yet</p>
-              ) : (
-                tenants.map((t) => (
-                  <div key={t._id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '14px', background: '#fafafa', borderRadius: '10px', marginBottom: '10px', border: '0.5px solid #f0f0f0' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                      <div style={{ width: '40px', height: '40px', borderRadius: '50%', background: '#E6F1FB', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '15px', fontWeight: 500, color: '#185FA5' }}>
-                        {t.name?.charAt(0)}
-                      </div>
-                      <div>
-                        <p style={{ margin: 0, fontWeight: 500, color: '#1a1a1a' }}>{t.name}</p>
-                        <p style={{ margin: '2px 0 0', color: '#888', fontSize: '12px' }}>{t.email}</p>
-                        <div style={{ display: 'flex', gap: '8px', marginTop: '4px' }}>
-                          {t.unitNumber && (
-                            <span style={{ fontSize: '11px', background: '#E6F1FB', color: '#185FA5', padding: '2px 8px', borderRadius: '20px' }}>
-                              Unit {t.unitNumber}
-                            </span>
-                          )}
-                          {t.rentAmount ? (
-                            <span style={{ fontSize: '11px', background: '#EAF3DE', color: '#3B6D11', padding: '2px 8px', borderRadius: '20px' }}>
-                              ${t.rentAmount}/mo
-                            </span>
-                          ) : (
-                            <span style={{ fontSize: '11px', background: '#FAEEDA', color: '#854F0B', padding: '2px 8px', borderRadius: '20px' }}>
-                              Rent not set
-                            </span>
-                          )}
-                          {t.dueDate && (
-                            <span style={{ fontSize: '11px', background: '#FAEEDA', color: '#854F0B', padding: '2px 8px', borderRadius: '20px' }}>
-                              Due: Day {t.dueDate}
-                            </span>
-                          )}
-                        </div>
-                      </div>
+                <div style={{ padding: '40px', textAlign: 'center', color: '#9CA3AF' }}>No tenants yet</div>
+              ) : tenants.map((t, idx) => (
+                <div key={t._id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '14px 18px', borderBottom: idx < tenants.length - 1 ? '0.5px solid #F0FDF4' : 'none' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                    <div style={{ width: '40px', height: '40px', borderRadius: '50%', background: '#DCFCE7', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#166534', fontSize: '15px', fontWeight: 500 }}>
+                      {t.name?.charAt(0)}
                     </div>
-                    <div style={{ display: 'flex', gap: '8px' }}>
-                      <button
-                        onClick={() => {
-                          setEditTenant(t)
-                          setRentInput(t.rentAmount || '')
-                          setDueDateInput(t.dueDate || '')
-                        }}
-                        style={{ padding: '7px 12px', background: '#E6F1FB', color: '#185FA5', border: 'none', borderRadius: '6px', cursor: 'pointer', fontSize: '12px', fontWeight: 500 }}>
-                        Set Rent
-                      </button>
-                      <button onClick={() => handleDeleteTenant(t._id)}
-                        style={{ padding: '7px 12px', background: '#FCEBEB', color: '#791F1F', border: 'none', borderRadius: '6px', cursor: 'pointer', fontSize: '12px' }}>
-                        Remove
-                      </button>
+                    <div>
+                      <div style={{ fontSize: '14px', fontWeight: 500, color: '#111827' }}>{t.name}</div>
+                      <div style={{ fontSize: '12px', color: '#6B7280' }}>{t.email}</div>
+                      <div style={{ display: 'flex', gap: '6px', marginTop: '4px' }}>
+                        {t.unitNumber && <span style={{ fontSize: '11px', background: '#F0FDF4', color: '#166534', padding: '2px 8px', borderRadius: '20px', border: '0.5px solid #D1FAE5' }}>Unit {t.unitNumber}</span>}
+                        {t.rentAmount ? <span style={{ fontSize: '11px', background: '#DCFCE7', color: '#166534', padding: '2px 8px', borderRadius: '20px' }}>${t.rentAmount}/mo</span>
+                          : <span style={{ fontSize: '11px', background: '#FFFBEB', color: '#D97706', padding: '2px 8px', borderRadius: '20px' }}>Rent not set</span>}
+                        {t.dueDate && <span style={{ fontSize: '11px', background: '#FFFBEB', color: '#D97706', padding: '2px 8px', borderRadius: '20px' }}>Due day {t.dueDate}</span>}
+                      </div>
                     </div>
                   </div>
-                ))
-              )}
+                  <div style={{ display: 'flex', gap: '8px' }}>
+                    <button onClick={() => { setEditTenant(t); setRentInput(t.rentAmount || ''); setDueDateInput(t.dueDate || '') }}
+                      style={{ padding: '7px 14px', background: '#F0FDF4', color: '#166534', border: '1px solid #D1FAE5', borderRadius: '8px', cursor: 'pointer', fontSize: '12px', fontWeight: 500 }}>
+                      Set rent
+                    </button>
+                    <button onClick={() => handleDeleteTenant(t._id)}
+                      style={{ padding: '7px 14px', background: '#FEF2F2', color: '#DC2626', border: '1px solid #FECACA', borderRadius: '8px', cursor: 'pointer', fontSize: '12px' }}>
+                      Remove
+                    </button>
+                  </div>
+                </div>
+              ))}
             </div>
           )}
 
           {/* PAYMENTS */}
           {activePage === 'payments' && (
-            <div style={{ background: 'white', borderRadius: '12px', padding: '20px', border: '0.5px solid #e0e0e0' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
-                <h3 style={{ margin: 0, fontSize: '15px', color: '#1a1a1a' }}>All payments</h3>
-                <input
-                  type="text"
-                  placeholder="Search tenant..."
-                  value={search}
-                  onChange={(e) => setSearch(e.target.value)}
-                  style={{ padding: '7px 12px', border: '1px solid #e0e0e0', borderRadius: '8px', fontSize: '13px', width: '180px', outline: 'none' }}
-                />
+            <div style={{ background: 'white', borderRadius: '14px', border: '0.5px solid #D1FAE5', overflow: 'hidden', marginBottom: '24px' }}>
+              <div style={{ padding: '14px 18px', borderBottom: '0.5px solid #F0FDF4', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <span style={{ fontSize: '14px', fontWeight: 500, color: '#052E16' }}>All payments</span>
+                <input type="text" placeholder="Search tenant..." value={search} onChange={(e) => setSearch(e.target.value)}
+                  style={{ padding: '7px 12px', border: '1px solid #D1FAE5', borderRadius: '8px', fontSize: '12px', outline: 'none', width: '180px', color: '#111827' }} />
+              </div>
+              <div style={{ padding: '10px 18px', background: '#F9FAFB', borderBottom: '0.5px solid #F0FDF4', display: 'grid', gridTemplateColumns: '1.5fr 1fr auto auto auto', gap: '8px' }}>
+                {['Tenant', 'Month', 'Amount', 'Status', 'Actions'].map((h, i) => (
+                  <span key={i} style={{ fontSize: '11px', color: '#6B7280', fontWeight: 500 }}>{h}</span>
+                ))}
               </div>
               {loading ? (
-                <p style={{ textAlign: 'center', color: '#888' }}>Loading...</p>
+                <div style={{ padding: '40px', textAlign: 'center', color: '#9CA3AF' }}>Loading...</div>
               ) : filteredPayments.length === 0 ? (
-                <p style={{ textAlign: 'center', color: '#888', padding: '30px' }}>No payments found</p>
-              ) : (
-                filteredPayments.map((p) => (
-                  <div key={p._id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '14px', border: '0.5px solid #f0f0f0', borderRadius: '10px', marginBottom: '10px', background: '#fafafa' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                      <div style={{ width: '40px', height: '40px', borderRadius: '50%', background: '#E6F1FB', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '14px', fontWeight: 500, color: '#185FA5' }}>
-                        {p.tenant?.name?.charAt(0) || 'T'}
-                      </div>
-                      <div>
-                        <p style={{ margin: 0, fontWeight: 500, color: '#1a1a1a' }}>{p.tenant?.name}</p>
-                        <p style={{ margin: '2px 0 0', color: '#888', fontSize: '12px' }}>{p.tenant?.email}</p>
-                        <p style={{ margin: '2px 0 0', color: '#888', fontSize: '12px' }}>{p.month} · {p.method} · {new Date(p.date).toLocaleDateString()}</p>
-                      </div>
+                <div style={{ padding: '40px', textAlign: 'center', color: '#9CA3AF' }}>No payments found</div>
+              ) : filteredPayments.map((p, idx) => (
+                <div key={p._id} style={{ display: 'grid', gridTemplateColumns: '1.5fr 1fr auto auto auto', gap: '8px', padding: '12px 18px', alignItems: 'center', borderBottom: idx < filteredPayments.length - 1 ? '0.5px solid #F0FDF4' : 'none' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <div style={{ width: '32px', height: '32px', borderRadius: '50%', background: '#DCFCE7', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#166534', fontSize: '12px', fontWeight: 500, flexShrink: 0 }}>
+                      {p.tenant?.name?.charAt(0) || 'T'}
                     </div>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                      {p.proofImage && (
-                        <img
-                          src={`http://localhost:5000${p.proofImage}`}
-                          alt="proof"
-                          onClick={() => setSelectedImage(`http://localhost:5000${p.proofImage}`)}
-                          style={{ width: '44px', height: '44px', objectFit: 'cover', borderRadius: '8px', border: '1px solid #e0e0e0', cursor: 'pointer' }}
-                        />
-                      )}
-                      <div style={{ textAlign: 'right' }}>
-                        <p style={{ margin: 0, fontWeight: 500, fontSize: '16px', color: '#185FA5' }}>${p.amount}</p>
-                        <span style={{ padding: '2px 8px', borderRadius: '20px', fontSize: '11px', fontWeight: 500, background: statusColor[p.status]?.bg, color: statusColor[p.status]?.text }}>
-                          {p.status}
-                        </span>
-                      </div>
-                      <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-                        <button onClick={() => handleStatus(p._id, 'confirmed')}
-                          style={{ padding: '5px 10px', background: '#EAF3DE', color: '#3B6D11', border: 'none', borderRadius: '6px', cursor: 'pointer', fontSize: '11px' }}>
-                          Confirm
-                        </button>
-                        <button onClick={() => handleStatus(p._id, 'flagged')}
-                          style={{ padding: '5px 10px', background: '#FCEBEB', color: '#791F1F', border: 'none', borderRadius: '6px', cursor: 'pointer', fontSize: '11px' }}>
-                          Flag
-                        </button>
-                      </div>
+                    <div>
+                      <div style={{ fontSize: '12px', fontWeight: 500, color: '#111827' }}>{p.tenant?.name}</div>
+                      <div style={{ fontSize: '10px', color: '#9CA3AF' }}>{p.tenant?.email}</div>
                     </div>
                   </div>
-                ))
-              )}
+                  <div>
+                    <div style={{ fontSize: '12px', color: '#111827' }}>{p.month}</div>
+                    <div style={{ fontSize: '10px', color: '#9CA3AF' }}>{p.method}</div>
+                  </div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                    <span style={{ fontSize: '13px', fontWeight: 500, color: '#052E16' }}>${p.amount}</span>
+                    {p.proofImage && (
+                      <img src={`http://localhost:5000${p.proofImage}`} alt="proof"
+                        onClick={() => setSelectedImage(`http://localhost:5000${p.proofImage}`)}
+                        style={{ width: '24px', height: '24px', objectFit: 'cover', borderRadius: '4px', cursor: 'pointer', border: '1px solid #D1FAE5' }} />
+                    )}
+                  </div>
+                  <span style={{ padding: '3px 10px', borderRadius: '20px', fontSize: '11px', fontWeight: 500, background: statusBadge[p.status]?.bg, color: statusBadge[p.status]?.color, whiteSpace: 'nowrap' }}>
+                    {p.status}
+                  </span>
+                  <div style={{ display: 'flex', gap: '4px' }}>
+                    <button onClick={() => handleStatus(p._id, 'confirmed')}
+                      style={{ padding: '5px 8px', background: '#DCFCE7', color: '#166534', border: 'none', borderRadius: '6px', cursor: 'pointer', fontSize: '10px', fontWeight: 500 }}>
+                      Confirm
+                    </button>
+                    <button onClick={() => handleStatus(p._id, 'flagged')}
+                      style={{ padding: '5px 8px', background: '#FEF2F2', color: '#DC2626', border: 'none', borderRadius: '6px', cursor: 'pointer', fontSize: '10px', fontWeight: 500 }}>
+                      Flag
+                    </button>
+                  </div>
+                </div>
+              ))}
             </div>
           )}
         </div>

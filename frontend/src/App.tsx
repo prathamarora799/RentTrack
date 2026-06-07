@@ -5,6 +5,7 @@ import TenantDashboard from './pages/TenantDashboard'
 import LandlordDashboard from './pages/LandlordDashboard'
 import AddPayment from './pages/AddPayment'
 import EditPayment from './pages/EditPayment'
+import Profile from './pages/Profile'
 
 function App() {
   return (
@@ -14,7 +15,8 @@ function App() {
       <Route path="/tenant" element={<TenantDashboard />} />
       <Route path="/landlord" element={<LandlordDashboard />} />
       <Route path="/add-payment" element={<AddPayment />} />
-    <Route path="/edit-payment/:id" element={<EditPayment />} />
+      <Route path="/edit-payment/:id" element={<EditPayment />} />
+      <Route path="/profile" element={<Profile />} />
     </Routes>
   )
 }

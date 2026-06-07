@@ -6,27 +6,16 @@ function Login() {
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [message, setMessage] = useState('')
+  const [loading, setLoading] = useState(false)
   const navigate = useNavigate()
 
   const handleLogin = async () => {
-    // Validations
-    if (!email) {
-      setMessage('Email is required')
-      return
-    }
-    if (!/\S+@\S+\.\S+/.test(email)) {
-      setMessage('Please enter a valid email address')
-      return
-    }
-    if (!password) {
-      setMessage('Password is required')
-      return
-    }
-    if (password.length < 6) {
-      setMessage('Password must be at least 6 characters')
-      return
-    }
+    if (!email) { setMessage('Email is required'); return }
+    if (!/\S+@\S+\.\S+/.test(email)) { setMessage('Please enter a valid email'); return }
+    if (!password) { setMessage('Password is required'); return }
+    if (password.length < 6) { setMessage('Password must be at least 6 characters'); return }
 
+    setLoading(true)
     try {
       const res = await fetch('http://localhost:5000/api/auth/login', {
         method: 'POST',
@@ -47,62 +36,89 @@ function Login() {
     } catch {
       setMessage('Server error — please try again')
     }
+    setLoading(false)
   }
 
   return (
-    <div style={{ minHeight: '100vh', background: 'var(--bg, #f0f4ff)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '24px' }}>
-      <div style={{ background: 'white', borderRadius: '16px', border: '0.5px solid #e0e0e0', padding: '36px', width: '100%', maxWidth: '380px' }}>
-        <div style={{ textAlign: 'center', marginBottom: '28px' }}>
-          <div style={{ width: '56px', height: '56px', background: '#185FA5', borderRadius: '14px', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 12px', fontSize: '24px' }}>
-            🏠
+    <div style={{ minHeight: '100vh', background: '#0A3622', display: 'flex', flexDirection: 'column' }}>
+
+      {/* Top bar */}
+      <div style={{ padding: '20px 32px', display: 'flex', alignItems: 'center', gap: '10px' }}>
+        <div style={{ width: '32px', height: '32px', borderRadius: '8px', background: '#166534', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          <span style={{ fontSize: '16px' }}>🏠</span>
+        </div>
+        <span style={{ color: 'white', fontSize: '16px', fontWeight: 500 }}>RentTrack</span>
+      </div>
+
+      {/* Center content */}
+      <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '24px' }}>
+        <div style={{ width: '100%', maxWidth: '420px' }}>
+
+          {/* Heading */}
+          <div style={{ marginBottom: '32px' }}>
+            <h1 style={{ color: 'white', fontSize: '28px', fontWeight: 500, margin: '0 0 8px' }}>Welcome back</h1>
+            <p style={{ color: '#86EFAC', fontSize: '14px', margin: 0 }}>Sign in to your RentTrack account</p>
           </div>
-          <h2 style={{ fontSize: '20px', fontWeight: 500, color: '#1a1a1a', margin: '0 0 4px' }}>RentTrack</h2>
-          <p style={{ fontSize: '13px', color: '#888', margin: 0 }}>Welcome back! Please login</p>
-        </div>
 
-        <div style={{ marginBottom: '14px' }}>
-          <label style={{ display: 'block', fontSize: '13px', color: '#666', marginBottom: '5px' }}>Email address</label>
-          <input
-            type="email"
-            value={email}
-            onChange={(e) => { setEmail(e.target.value); setMessage('') }}
-            placeholder="you@email.com"
-            style={{ width: '100%', padding: '10px 14px', border: `1px solid ${message && !email ? '#dc2626' : '#e0e0e0'}`, borderRadius: '8px', fontSize: '14px', boxSizing: 'border-box', outline: 'none' }}
-          />
-        </div>
+          {/* Card */}
+          <div style={{ background: 'white', borderRadius: '16px', padding: '28px' }}>
 
-        <div style={{ marginBottom: '20px' }}>
-          <label style={{ display: 'block', fontSize: '13px', color: '#666', marginBottom: '5px' }}>Password</label>
-          <input
-            type="password"
-            value={password}
-            onChange={(e) => { setPassword(e.target.value); setMessage('') }}
-            placeholder="Enter your password"
-            style={{ width: '100%', padding: '10px 14px', border: `1px solid ${message && !password ? '#dc2626' : '#e0e0e0'}`, borderRadius: '8px', fontSize: '14px', boxSizing: 'border-box', outline: 'none' }}
-          />
-        </div>
+            <div style={{ marginBottom: '16px' }}>
+              <label style={{ display: 'block', fontSize: '13px', color: '#374151', marginBottom: '6px', fontWeight: 500 }}>Email address</label>
+              <input
+                type="email"
+                value={email}
+                onChange={(e) => { setEmail(e.target.value); setMessage('') }}
+                placeholder="you@email.com"
+                style={{ width: '100%', padding: '11px 14px', border: '1px solid #D1FAE5', borderRadius: '10px', fontSize: '14px', boxSizing: 'border-box', outline: 'none', color: '#111827', background: '#F9FAFB' }}
+                onFocus={(e) => e.target.style.borderColor = '#22C55E'}
+                onBlur={(e) => e.target.style.borderColor = '#D1FAE5'}
+              />
+            </div>
 
-        {message && (
-          <div style={{ background: '#FCEBEB', color: '#791F1F', padding: '10px 14px', borderRadius: '8px', fontSize: '13px', marginBottom: '14px', display: 'flex', alignItems: 'center', gap: '8px' }}>
-            ⚠️ {message}
+            <div style={{ marginBottom: '20px' }}>
+              <label style={{ display: 'block', fontSize: '13px', color: '#374151', marginBottom: '6px', fontWeight: 500 }}>Password</label>
+              <input
+                type="password"
+                value={password}
+                onChange={(e) => { setPassword(e.target.value); setMessage('') }}
+                placeholder="Enter your password"
+                style={{ width: '100%', padding: '11px 14px', border: '1px solid #D1FAE5', borderRadius: '10px', fontSize: '14px', boxSizing: 'border-box', outline: 'none', color: '#111827', background: '#F9FAFB' }}
+                onFocus={(e) => e.target.style.borderColor = '#22C55E'}
+                onBlur={(e) => e.target.style.borderColor = '#D1FAE5'}
+              />
+            </div>
+
+            {message && (
+              <div style={{ background: '#FEF2F2', border: '1px solid #FECACA', borderRadius: '8px', padding: '10px 14px', fontSize: '13px', color: '#DC2626', marginBottom: '16px' }}>
+                {message}
+              </div>
+            )}
+
+            <button
+              onClick={handleLogin}
+              disabled={loading}
+              style={{ width: '100%', padding: '12px', background: loading ? '#86EFAC' : '#0A3622', color: 'white', border: 'none', borderRadius: '10px', fontSize: '14px', fontWeight: 500, cursor: loading ? 'not-allowed' : 'pointer' }}>
+              {loading ? 'Signing in...' : 'Sign in'}
+            </button>
+
+            <div style={{ display: 'flex', alignItems: 'center', gap: '10px', margin: '18px 0' }}>
+              <div style={{ flex: 1, height: '1px', background: '#F0FDF4' }}></div>
+              <span style={{ fontSize: '12px', color: '#9CA3AF' }}>or</span>
+              <div style={{ flex: 1, height: '1px', background: '#F0FDF4' }}></div>
+            </div>
+
+            <button
+              onClick={() => navigate('/register')}
+              style={{ width: '100%', padding: '12px', background: '#F0FDF4', color: '#166534', border: '1px solid #D1FAE5', borderRadius: '10px', fontSize: '14px', fontWeight: 500, cursor: 'pointer' }}>
+              Create new account
+            </button>
           </div>
-        )}
 
-        <button onClick={handleLogin}
-          style={{ width: '100%', padding: '11px', background: '#185FA5', color: 'white', border: 'none', borderRadius: '8px', fontSize: '14px', cursor: 'pointer', fontWeight: 500 }}>
-          Login to RentTrack
-        </button>
-
-        <div style={{ display: 'flex', alignItems: 'center', gap: '10px', margin: '16px 0' }}>
-          <div style={{ flex: 1, height: '0.5px', background: '#e0e0e0' }}></div>
-          <span style={{ fontSize: '12px', color: '#aaa' }}>or</span>
-          <div style={{ flex: 1, height: '0.5px', background: '#e0e0e0' }}></div>
+          <p style={{ color: '#4ADE80', fontSize: '12px', textAlign: 'center', marginTop: '20px' }}>
+            Secure rent payment tracking for tenants and landlords
+          </p>
         </div>
-
-        <button onClick={() => navigate('/register')}
-          style={{ width: '100%', padding: '11px', background: '#f5f5f5', color: '#333', border: '1px solid #e0e0e0', borderRadius: '8px', fontSize: '14px', cursor: 'pointer' }}>
-          Create new account
-        </button>
       </div>
     </div>
   )

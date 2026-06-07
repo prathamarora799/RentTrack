@@ -5,7 +5,6 @@ function Profile() {
   const navigate = useNavigate()
   const token = localStorage.getItem('token')
   const role = localStorage.getItem('role')
-
   const [name, setName] = useState('')
   const [email, setEmail] = useState('')
   const [phone, setPhone] = useState('')
@@ -41,10 +40,7 @@ function Profile() {
     try {
       const res = await fetch('http://localhost:5000/api/users/profile', {
         method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${token}`
-        },
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
         body: JSON.stringify({ name, phone, unitNumber })
       })
       if (res.ok) {
@@ -58,105 +54,124 @@ function Profile() {
   }
 
   return (
-    <div style={{ minHeight: '100vh', background: '#f0f4ff' }}>
+    <div style={{ minHeight: '100vh', background: '#F0FDF4', display: 'flex', flexDirection: 'column' }}>
 
-      {/* Navbar */}
-      <div style={{ background: '#185FA5', padding: '14px 24px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+      {/* Topbar */}
+      <div style={{ background: 'white', padding: '12px 24px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '0.5px solid #D1FAE5' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-          <span style={{ fontSize: '22px' }}>🏠</span>
-          <h2 style={{ color: 'white', margin: 0, fontSize: '18px' }}>RentTrack</h2>
+          <div style={{ width: '28px', height: '28px', borderRadius: '7px', background: '#0A3622', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '14px' }}>🏠</div>
+          <span style={{ fontSize: '15px', fontWeight: 500, color: '#052E16' }}>RentTrack</span>
+          <span style={{ color: '#9CA3AF', fontSize: '14px' }}>/</span>
+          <span style={{ fontSize: '14px', color: '#6B7280' }}>Profile</span>
         </div>
         <button onClick={() => navigate(role === 'landlord' ? '/landlord' : '/tenant')}
-          style={{ padding: '7px 16px', background: 'rgba(255,255,255,0.15)', color: 'white', border: '1px solid rgba(255,255,255,0.3)', borderRadius: '8px', cursor: 'pointer' }}>
+          style={{ padding: '7px 14px', background: '#F0FDF4', color: '#166534', border: '1px solid #D1FAE5', borderRadius: '8px', cursor: 'pointer', fontSize: '13px', fontWeight: 500 }}>
           ← Back
         </button>
       </div>
 
-      <div style={{ padding: '24px', maxWidth: '600px', margin: '0 auto' }}>
-
-        {/* Profile Header */}
-        <div style={{ background: '#185FA5', borderRadius: '16px', padding: '24px', marginBottom: '20px', textAlign: 'center' }}>
-          <div style={{ width: '80px', height: '80px', borderRadius: '50%', background: 'rgba(255,255,255,0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 12px', fontSize: '32px' }}>
-            👤
+      {/* Green header */}
+      <div style={{ background: '#0A3622', padding: '24px 24px 56px' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+          <div style={{ width: '60px', height: '60px', borderRadius: '50%', background: '#166534', border: '3px solid #22C55E', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#86EFAC', fontSize: '22px', fontWeight: 500 }}>
+            {name.charAt(0).toUpperCase() || '?'}
           </div>
-          <h2 style={{ color: 'white', margin: '0 0 4px', fontSize: '20px' }}>{name}</h2>
-          <p style={{ color: '#B5D4F4', margin: 0, fontSize: '13px', textTransform: 'capitalize' }}>{role}</p>
-          {unitNumber && <p style={{ color: '#B5D4F4', margin: '4px 0 0', fontSize: '13px' }}>Unit {unitNumber}</p>}
+          <div>
+            <div style={{ color: 'white', fontSize: '20px', fontWeight: 500 }}>{name || 'Loading...'}</div>
+            <div style={{ color: '#86EFAC', fontSize: '13px', textTransform: 'capitalize', marginTop: '2px' }}>{role} account</div>
+            {unitNumber && <div style={{ color: '#4ADE80', fontSize: '12px', marginTop: '2px' }}>Unit {unitNumber}</div>}
+          </div>
         </div>
+      </div>
 
-        {/* Success Toast */}
+      <div style={{ padding: '0 24px', marginTop: '-28px', maxWidth: '600px', width: '100%', margin: '-28px auto 0' }}>
+
+        {/* Success */}
         {success && (
-          <div style={{ background: '#EAF3DE', border: '1px solid #9FE1CB', borderRadius: '10px', padding: '12px 16px', marginBottom: '16px', color: '#3B6D11', fontSize: '14px', fontWeight: 500 }}>
+          <div style={{ background: '#DCFCE7', border: '1px solid #86EFAC', borderRadius: '10px', padding: '12px 16px', marginBottom: '14px', color: '#166534', fontSize: '13px', fontWeight: 500, display: 'flex', alignItems: 'center', gap: '8px' }}>
             ✅ Profile updated successfully!
           </div>
         )}
 
-        {/* Profile Form */}
-        <div style={{ background: 'white', borderRadius: '12px', padding: '24px', border: '0.5px solid #e0e0e0', marginBottom: '16px' }}>
-          <h3 style={{ margin: '0 0 20px', color: '#1a1a1a', fontSize: '16px' }}>Personal Information</h3>
+        {/* Profile form */}
+        <div style={{ background: 'white', borderRadius: '16px', padding: '24px', border: '0.5px solid #D1FAE5', marginBottom: '16px' }}>
+          <h3 style={{ margin: '0 0 20px', fontSize: '15px', color: '#052E16', fontWeight: 500 }}>Personal information</h3>
 
           {loading ? (
-            <p style={{ color: '#666', textAlign: 'center' }}>Loading...</p>
+            <p style={{ color: '#9CA3AF', textAlign: 'center', padding: '20px' }}>Loading...</p>
           ) : (
             <>
               <div style={{ marginBottom: '14px' }}>
-                <label style={{ display: 'block', fontSize: '13px', color: '#666', marginBottom: '5px' }}>Full Name</label>
+                <label style={{ display: 'block', fontSize: '13px', color: '#374151', marginBottom: '6px', fontWeight: 500 }}>Full name</label>
                 <input type="text" value={name} onChange={(e) => setName(e.target.value)}
-                  style={{ width: '100%', padding: '10px', border: '1px solid #ddd', borderRadius: '8px', boxSizing: 'border-box', fontSize: '14px' }} />
+                  style={{ width: '100%', padding: '11px 14px', border: '1px solid #D1FAE5', borderRadius: '10px', fontSize: '14px', boxSizing: 'border-box', outline: 'none', background: '#F9FAFB', color: '#111827' }}
+                  onFocus={(e) => e.target.style.borderColor = '#22C55E'}
+                  onBlur={(e) => e.target.style.borderColor = '#D1FAE5'}
+                />
               </div>
 
               <div style={{ marginBottom: '14px' }}>
-                <label style={{ display: 'block', fontSize: '13px', color: '#666', marginBottom: '5px' }}>Email Address</label>
+                <label style={{ display: 'block', fontSize: '13px', color: '#374151', marginBottom: '6px', fontWeight: 500 }}>Email address</label>
                 <input type="email" value={email} disabled
-                  style={{ width: '100%', padding: '10px', border: '1px solid #ddd', borderRadius: '8px', boxSizing: 'border-box', fontSize: '14px', background: '#f5f5f5', color: '#888' }} />
-                <p style={{ fontSize: '11px', color: '#aaa', margin: '4px 0 0' }}>Email cannot be changed</p>
+                  style={{ width: '100%', padding: '11px 14px', border: '1px solid #E5E7EB', borderRadius: '10px', fontSize: '14px', boxSizing: 'border-box', background: '#F5F5F5', color: '#9CA3AF' }} />
+                <p style={{ fontSize: '11px', color: '#9CA3AF', margin: '4px 0 0' }}>Email cannot be changed</p>
               </div>
 
               <div style={{ marginBottom: '14px' }}>
-                <label style={{ display: 'block', fontSize: '13px', color: '#666', marginBottom: '5px' }}>Phone Number</label>
+                <label style={{ display: 'block', fontSize: '13px', color: '#374151', marginBottom: '6px', fontWeight: 500 }}>Phone number</label>
                 <input type="text" value={phone} onChange={(e) => setPhone(e.target.value)}
                   placeholder="+64 21 000 0000"
-                  style={{ width: '100%', padding: '10px', border: '1px solid #ddd', borderRadius: '8px', boxSizing: 'border-box', fontSize: '14px' }} />
+                  style={{ width: '100%', padding: '11px 14px', border: '1px solid #D1FAE5', borderRadius: '10px', fontSize: '14px', boxSizing: 'border-box', outline: 'none', background: '#F9FAFB', color: '#111827' }}
+                  onFocus={(e) => e.target.style.borderColor = '#22C55E'}
+                  onBlur={(e) => e.target.style.borderColor = '#D1FAE5'}
+                />
               </div>
 
               {role === 'tenant' && (
                 <div style={{ marginBottom: '14px' }}>
-                  <label style={{ display: 'block', fontSize: '13px', color: '#666', marginBottom: '5px' }}>Unit Number</label>
+                  <label style={{ display: 'block', fontSize: '13px', color: '#374151', marginBottom: '6px', fontWeight: 500 }}>Unit number</label>
                   <input type="text" value={unitNumber} onChange={(e) => setUnitNumber(e.target.value)}
                     placeholder="e.g. 2A"
-                    style={{ width: '100%', padding: '10px', border: '1px solid #ddd', borderRadius: '8px', boxSizing: 'border-box', fontSize: '14px' }} />
+                    style={{ width: '100%', padding: '11px 14px', border: '1px solid #D1FAE5', borderRadius: '10px', fontSize: '14px', boxSizing: 'border-box', outline: 'none', background: '#F9FAFB', color: '#111827' }}
+                    onFocus={(e) => e.target.style.borderColor = '#22C55E'}
+                    onBlur={(e) => e.target.style.borderColor = '#D1FAE5'}
+                  />
                 </div>
               )}
 
-              {message && <p style={{ color: 'red', fontSize: '13px' }}>{message}</p>}
+              {message && (
+                <div style={{ background: '#FEF2F2', border: '1px solid #FECACA', borderRadius: '8px', padding: '10px 14px', fontSize: '13px', color: '#DC2626', marginBottom: '14px' }}>
+                  {message}
+                </div>
+              )}
 
               <button onClick={handleUpdate}
-                style={{ width: '100%', padding: '11px', background: '#185FA5', color: 'white', border: 'none', borderRadius: '8px', cursor: 'pointer', fontWeight: 500, fontSize: '15px', marginTop: '8px' }}>
-                Save Changes
+                style={{ width: '100%', padding: '12px', background: '#0A3622', color: 'white', border: 'none', borderRadius: '10px', cursor: 'pointer', fontWeight: 500, fontSize: '14px', marginTop: '4px' }}>
+                Save changes
               </button>
             </>
           )}
         </div>
 
-        {/* Rent Info — Tenant Only */}
+        {/* Rent info — tenant only */}
         {role === 'tenant' && (
-          <div style={{ background: 'white', borderRadius: '12px', padding: '24px', border: '0.5px solid #e0e0e0' }}>
-            <h3 style={{ margin: '0 0 16px', color: '#1a1a1a', fontSize: '16px' }}>Rent Information</h3>
+          <div style={{ background: 'white', borderRadius: '16px', padding: '24px', border: '0.5px solid #D1FAE5', marginBottom: '32px' }}>
+            <h3 style={{ margin: '0 0 16px', fontSize: '15px', color: '#052E16', fontWeight: 500 }}>Rent information</h3>
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
-              <div style={{ background: '#E6F1FB', borderRadius: '10px', padding: '16px' }}>
-                <p style={{ color: '#0C447C', fontSize: '12px', margin: '0 0 4px' }}>Monthly Rent</p>
-                <p style={{ color: '#185FA5', fontSize: '22px', fontWeight: 700, margin: 0 }}>
-                  {rentAmount ? `$${rentAmount}` : 'Not set'}
-                </p>
+              <div style={{ background: '#F0FDF4', borderRadius: '12px', padding: '16px', border: '0.5px solid #D1FAE5' }}>
+                <div style={{ fontSize: '11px', color: '#6B7280', marginBottom: '6px', fontWeight: 500 }}>Monthly rent</div>
+                <div style={{ fontSize: '26px', fontWeight: 500, color: '#052E16' }}>
+                  {rentAmount ? `$${rentAmount}` : <span style={{ fontSize: '16px', color: '#9CA3AF' }}>Not set</span>}
+                </div>
               </div>
-              <div style={{ background: '#FAEEDA', borderRadius: '10px', padding: '16px' }}>
-                <p style={{ color: '#854F0B', fontSize: '12px', margin: '0 0 4px' }}>Due Date</p>
-                <p style={{ color: '#854F0B', fontSize: '22px', fontWeight: 700, margin: 0 }}>
-                  {dueDate ? `Day ${dueDate}` : 'Not set'}
-                </p>
+              <div style={{ background: '#FFFBEB', borderRadius: '12px', padding: '16px', border: '0.5px solid #FDE68A' }}>
+                <div style={{ fontSize: '11px', color: '#92400E', marginBottom: '6px', fontWeight: 500 }}>Due date</div>
+                <div style={{ fontSize: '26px', fontWeight: 500, color: '#D97706' }}>
+                  {dueDate ? `Day ${dueDate}` : <span style={{ fontSize: '16px', color: '#9CA3AF' }}>Not set</span>}
+                </div>
               </div>
             </div>
-            <p style={{ color: '#aaa', fontSize: '12px', margin: '12px 0 0', textAlign: 'center' }}>
+            <p style={{ color: '#9CA3AF', fontSize: '12px', margin: '12px 0 0', textAlign: 'center' }}>
               Contact your landlord to update rent details
             </p>
           </div>

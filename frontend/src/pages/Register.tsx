@@ -8,35 +8,18 @@ function Register() {
   const [password, setPassword] = useState('')
   const [role, setRole] = useState('tenant')
   const [message, setMessage] = useState('')
+  const [loading, setLoading] = useState(false)
   const navigate = useNavigate()
 
   const handleRegister = async () => {
-    // Validations
-    if (!name) {
-      setMessage('Full name is required')
-      return
-    }
-    if (name.length < 2) {
-      setMessage('Name must be at least 2 characters')
-      return
-    }
-    if (!email) {
-      setMessage('Email is required')
-      return
-    }
-    if (!/\S+@\S+\.\S+/.test(email)) {
-      setMessage('Please enter a valid email address')
-      return
-    }
-    if (!password) {
-      setMessage('Password is required')
-      return
-    }
-    if (password.length < 6) {
-      setMessage('Password must be at least 6 characters')
-      return
-    }
+    if (!name) { setMessage('Full name is required'); return }
+    if (name.length < 2) { setMessage('Name must be at least 2 characters'); return }
+    if (!email) { setMessage('Email is required'); return }
+    if (!/\S+@\S+\.\S+/.test(email)) { setMessage('Please enter a valid email'); return }
+    if (!password) { setMessage('Password is required'); return }
+    if (password.length < 6) { setMessage('Password must be at least 6 characters'); return }
 
+    setLoading(true)
     try {
       const res = await fetch('http://localhost:5000/api/auth/register', {
         method: 'POST',
@@ -53,62 +36,87 @@ function Register() {
     } catch {
       setMessage('Server error — please try again')
     }
+    setLoading(false)
   }
 
   return (
-    <div style={{ minHeight: '100vh', background: '#f0f4ff', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '24px' }}>
-      <div style={{ background: 'white', borderRadius: '16px', border: '0.5px solid #e0e0e0', padding: '36px', width: '100%', maxWidth: '380px' }}>
-        <div style={{ textAlign: 'center', marginBottom: '28px' }}>
-          <div style={{ width: '56px', height: '56px', background: '#185FA5', borderRadius: '14px', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 12px', fontSize: '24px' }}>
-            🏠
-          </div>
-          <h2 style={{ fontSize: '20px', fontWeight: 500, color: '#1a1a1a', margin: '0 0 4px' }}>Create account</h2>
-          <p style={{ fontSize: '13px', color: '#888', margin: 0 }}>Join RentTrack today</p>
+    <div style={{ minHeight: '100vh', background: '#0A3622', display: 'flex', flexDirection: 'column' }}>
+
+      <div style={{ padding: '20px 32px', display: 'flex', alignItems: 'center', gap: '10px' }}>
+        <div style={{ width: '32px', height: '32px', borderRadius: '8px', background: '#166534', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          <span style={{ fontSize: '16px' }}>🏠</span>
         </div>
+        <span style={{ color: 'white', fontSize: '16px', fontWeight: 500 }}>RentTrack</span>
+      </div>
 
-        {[
-          { label: 'Full name', type: 'text', value: name, onChange: setName, placeholder: 'Your full name' },
-          { label: 'Email address', type: 'email', value: email, onChange: setEmail, placeholder: 'you@email.com' },
-          { label: 'Password', type: 'password', value: password, onChange: setPassword, placeholder: 'Min 6 characters' },
-        ].map((field, i) => (
-          <div key={i} style={{ marginBottom: '14px' }}>
-            <label style={{ display: 'block', fontSize: '13px', color: '#666', marginBottom: '5px' }}>{field.label}</label>
-            <input
-              type={field.type}
-              value={field.value}
-              onChange={(e) => { field.onChange(e.target.value); setMessage('') }}
-              placeholder={field.placeholder}
-              style={{ width: '100%', padding: '10px 14px', border: '1px solid #e0e0e0', borderRadius: '8px', fontSize: '14px', boxSizing: 'border-box', outline: 'none' }}
-            />
+      <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '24px' }}>
+        <div style={{ width: '100%', maxWidth: '420px' }}>
+
+          <div style={{ marginBottom: '28px' }}>
+            <h1 style={{ color: 'white', fontSize: '28px', fontWeight: 500, margin: '0 0 8px' }}>Create account</h1>
+            <p style={{ color: '#86EFAC', fontSize: '14px', margin: 0 }}>Join RentTrack today — it's free</p>
           </div>
-        ))}
 
-        <div style={{ marginBottom: '20px' }}>
-          <label style={{ display: 'block', fontSize: '13px', color: '#666', marginBottom: '5px' }}>I am a</label>
-          <select value={role} onChange={(e) => setRole(e.target.value)}
-            style={{ width: '100%', padding: '10px 14px', border: '1px solid #e0e0e0', borderRadius: '8px', fontSize: '14px', boxSizing: 'border-box' }}>
-            <option value="tenant">Tenant</option>
-            <option value="landlord">Landlord</option>
-          </select>
+          <div style={{ background: 'white', borderRadius: '16px', padding: '28px' }}>
+
+            {/* Role selector */}
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px', marginBottom: '20px' }}>
+              <div
+                onClick={() => setRole('tenant')}
+                style={{ padding: '12px', border: `2px solid ${role === 'tenant' ? '#22C55E' : '#E5E7EB'}`, borderRadius: '10px', cursor: 'pointer', textAlign: 'center', background: role === 'tenant' ? '#F0FDF4' : 'white' }}>
+                <div style={{ fontSize: '20px', marginBottom: '4px' }}>🏠</div>
+                <div style={{ fontSize: '13px', fontWeight: 500, color: role === 'tenant' ? '#166534' : '#374151' }}>Tenant</div>
+                <div style={{ fontSize: '11px', color: '#9CA3AF' }}>I pay rent</div>
+              </div>
+              <div
+                onClick={() => setRole('landlord')}
+                style={{ padding: '12px', border: `2px solid ${role === 'landlord' ? '#22C55E' : '#E5E7EB'}`, borderRadius: '10px', cursor: 'pointer', textAlign: 'center', background: role === 'landlord' ? '#F0FDF4' : 'white' }}>
+                <div style={{ fontSize: '20px', marginBottom: '4px' }}>🏢</div>
+                <div style={{ fontSize: '13px', fontWeight: 500, color: role === 'landlord' ? '#166534' : '#374151' }}>Landlord</div>
+                <div style={{ fontSize: '11px', color: '#9CA3AF' }}>I collect rent</div>
+              </div>
+            </div>
+
+            {[
+              { label: 'Full name', type: 'text', value: name, set: setName, placeholder: 'Your full name' },
+              { label: 'Email address', type: 'email', value: email, set: setEmail, placeholder: 'you@email.com' },
+              { label: 'Password', type: 'password', value: password, set: setPassword, placeholder: 'Min 6 characters' },
+            ].map((f, i) => (
+              <div key={i} style={{ marginBottom: '14px' }}>
+                <label style={{ display: 'block', fontSize: '13px', color: '#374151', marginBottom: '6px', fontWeight: 500 }}>{f.label}</label>
+                <input
+                  type={f.type}
+                  value={f.value}
+                  onChange={(e) => { f.set(e.target.value); setMessage('') }}
+                  placeholder={f.placeholder}
+                  style={{ width: '100%', padding: '11px 14px', border: '1px solid #D1FAE5', borderRadius: '10px', fontSize: '14px', boxSizing: 'border-box', outline: 'none', color: '#111827', background: '#F9FAFB' }}
+                  onFocus={(e) => e.target.style.borderColor = '#22C55E'}
+                  onBlur={(e) => e.target.style.borderColor = '#D1FAE5'}
+                />
+              </div>
+            ))}
+
+            {message && (
+              <div style={{ background: '#FEF2F2', border: '1px solid #FECACA', borderRadius: '8px', padding: '10px 14px', fontSize: '13px', color: '#DC2626', marginBottom: '14px' }}>
+                {message}
+              </div>
+            )}
+
+            <button
+              onClick={handleRegister}
+              disabled={loading}
+              style={{ width: '100%', padding: '12px', background: loading ? '#86EFAC' : '#0A3622', color: 'white', border: 'none', borderRadius: '10px', fontSize: '14px', fontWeight: 500, cursor: loading ? 'not-allowed' : 'pointer', marginTop: '4px' }}>
+              {loading ? 'Creating account...' : 'Create account'}
+            </button>
+
+            <p style={{ textAlign: 'center', fontSize: '13px', color: '#6B7280', marginTop: '16px' }}>
+              Already have an account?{' '}
+              <span onClick={() => navigate('/')} style={{ color: '#166534', cursor: 'pointer', fontWeight: 500 }}>
+                Sign in
+              </span>
+            </p>
+          </div>
         </div>
-
-        {message && (
-          <div style={{ background: '#FCEBEB', color: '#791F1F', padding: '10px 14px', borderRadius: '8px', fontSize: '13px', marginBottom: '14px', display: 'flex', alignItems: 'center', gap: '8px' }}>
-            ⚠️ {message}
-          </div>
-        )}
-
-        <button onClick={handleRegister}
-          style={{ width: '100%', padding: '11px', background: '#185FA5', color: 'white', border: 'none', borderRadius: '8px', fontSize: '14px', cursor: 'pointer', fontWeight: 500 }}>
-          Create account
-        </button>
-
-        <p style={{ textAlign: 'center', fontSize: '13px', color: '#888', marginTop: '16px' }}>
-          Already have an account?{' '}
-          <span onClick={() => navigate('/')} style={{ color: '#185FA5', cursor: 'pointer', fontWeight: 500 }}>
-            Login here
-          </span>
-        </p>
       </div>
     </div>
   )
