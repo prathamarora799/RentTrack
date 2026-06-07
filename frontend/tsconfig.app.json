@@ -22,7 +22,7 @@
     "noFallthroughCasesInSwitch": true
     
   },
-  "include": ["src"]
+  "include": ["src", "public/sw.ts"]
 }
 
 
